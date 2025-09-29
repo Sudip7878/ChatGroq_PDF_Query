@@ -17,8 +17,8 @@ from langchain_chroma import Chroma
 # -----------------------------
 load_dotenv()
 
-HF_TOKEN = os.getenv("HF_TOKEN") or st.secrets["hf"]["token"]
-GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets["groq"]["api_key"]
+HF_TOKEN = os.getenv("HF_TOKEN") or st.secrets.get("hf", {}).get("token")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets.get("groq", {}).get("api_key")
 
 # -----------------------------
 # Streamlit UI
@@ -32,7 +32,7 @@ st.write("पूर्व-लोड गरिएको PDF embeddings बाट 
 # -----------------------------
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={"token": HF_TOKEN}
+    model_kwargs={"device": "cpu"}  # use "cuda" if GPU is available
 )
 
 VECTORSTORE_DIR = "./chroma_db"  # must be included in repo
