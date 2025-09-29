@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+from dotenv import load_dotenv
 
 # LangChain & Groq
 from langchain_groq import ChatGroq
@@ -10,27 +11,31 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 # Embeddings & Vector DB
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from huggingface_hub import login
 
-# --- Load secrets from Streamlit Cloud ---
-HF_TOKEN = st.secrets["hf"]["token"]
-GROQ_API_KEY = st.secrets["groq"]["api_key"]
+# -----------------------------
+# Load environment / Streamlit secrets
+# -----------------------------
+load_dotenv()
 
-# Login to Hugging Face Hub
-login(HF_TOKEN)
+HF_TOKEN = os.getenv("HF_TOKEN") or st.secrets["hf"]["token"]
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets["groq"]["api_key"]
 
-# ---- Streamlit Layout ----
+# -----------------------------
+# Streamlit UI
+# -----------------------------
 st.set_page_config(page_title="Groq PDF RAG (Nepali)", layout="wide")
 st.title("📄 Groq PDF Q&A (नेपाली)")
 st.write("पूर्व-लोड गरिएको PDF embeddings बाट उत्तर दिन्छ।")
 
-# ---- Load persisted vectorstore from repo ----
+# -----------------------------
+# Load persisted vectorstore
+# -----------------------------
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={"use_auth_token": HF_TOKEN},
+    model_kwargs={"token": HF_TOKEN}
 )
 
-VECTORSTORE_DIR = "./chroma_db"  # 👈 must be in repo
+VECTORSTORE_DIR = "./chroma_db"  # must be included in repo
 
 if os.path.exists(VECTORSTORE_DIR):
     vectorstore = Chroma(
@@ -43,7 +48,9 @@ else:
     st.error(f"⚠️ Persisted vectorstore फोल्डर भेटिएन: {VECTORSTORE_DIR}")
     retriever = None
 
-# ---- User input & RAG ----
+# -----------------------------
+# RAG Q&A Loop
+# -----------------------------
 if retriever:
     if prompt := st.chat_input("पूर्व-लोड गरिएको PDF बारे प्रश्न सोध्नुहोस्..."):
         st.chat_message("user").write(prompt)
@@ -51,11 +58,11 @@ if retriever:
         # Initialize Groq LLM
         llm = ChatGroq(api_key=GROQ_API_KEY, model="llama-3.3-70b-versatile")
 
-        # System prompt enforcing Nepali-only responses
+        # System prompt enforcing Nepali-only answers
         system_prompt = (
             "तपाईँ एउटा सहायक सहायक हुनुहुन्छ। "
-            "**कुनै पनि हालतमा हिन्दी वा अन्य भाषा प्रयोग नगर्नुहोस्।** "
-            "**सधैं केवल नेपालीमा मात्र जवाफ दिनुहोस्।** "
+            "सधैं केवल नेपाली भाषामा मात्र जवाफ दिनुहोस्। "
+            "कुनै पनि हालतमा हिन्दी वा अन्य भाषा प्रयोग नगर्नुहोस्। "
             "दिइएको प्रसङ्ग (context) प्रयोग गरेर मात्र जवाफ दिनुहोस्। "
             "यदि प्रसङ्ग खाली छ वा सम्बन्धित छैन भने 'मलाई थाहा छैन' भन्नुहोस्। "
             "जवाफ छोटकरीमा दिनुहोस् (अधिकतम ८ वाक्यसम्म)।\n\n{context}"
@@ -68,16 +75,16 @@ if retriever:
             ]
         )
 
-        # Create RAG chain
+        # Build chain
         question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
         rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
-        # Force user input to Nepali
+        # Prepend explicit Nepali instruction
         user_input = "नेपालीमा जवाफ दिनुहोस्: " + prompt
 
         # Run RAG
         rag_response = rag_chain.invoke({"input": user_input})
         answer = rag_response["answer"]
 
-        # Show response
+        # Show answer
         st.chat_message("assistant").write(answer)
