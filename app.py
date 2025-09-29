@@ -52,7 +52,7 @@ else:
 # RAG Q&A Loop
 # -----------------------------
 if retriever:
-    if prompt := st.chat_input("पूर्व-लोड गरिएको PDF बारे प्रश्न सोध्नुहोस्..."):
+    if prompt := st.chat_input("Hi, How can i help..."):
         st.chat_message("user").write(prompt)
 
         # Initialize Groq LLM
