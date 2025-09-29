@@ -10,21 +10,27 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 # Embeddings & Vector DB
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
+from huggingface_hub import login
+
+# --- Load secrets from Streamlit Cloud ---
+HF_TOKEN = st.secrets["hf"]["token"]
+GROQ_API_KEY = st.secrets["groq"]["api_key"]
+
+# Login to Hugging Face Hub
+login(HF_TOKEN)
 
 # ---- Streamlit Layout ----
 st.set_page_config(page_title="Groq PDF RAG (Nepali)", layout="wide")
 st.title("📄 Groq PDF Q&A (नेपाली)")
 st.write("पूर्व-लोड गरिएको PDF embeddings बाट उत्तर दिन्छ।")
 
-# ---- Load API keys from Streamlit secrets ----
-# ⚠️ Make sure to set these in Streamlit Cloud: Secrets -> GROQ API & HF token
-GROQ_API_KEY = st.secrets["groq"]["api_key"]
-HF_TOKEN = st.secrets["hf"]["token"]
-os.environ["HF_TOKEN"] = HF_TOKEN
-
 # ---- Load persisted vectorstore from repo ----
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-VECTORSTORE_DIR = "./chroma_db"  # 👈 This folder must be committed to repo
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_kwargs={"use_auth_token": HF_TOKEN},
+)
+
+VECTORSTORE_DIR = "./chroma_db"  # 👈 must be in repo
 
 if os.path.exists(VECTORSTORE_DIR):
     vectorstore = Chroma(
@@ -66,12 +72,12 @@ if retriever:
         question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
         rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
-        # Prepend explicit Nepali instruction to user input
+        # Force user input to Nepali
         user_input = "नेपालीमा जवाफ दिनुहोस्: " + prompt
 
         # Run RAG
         rag_response = rag_chain.invoke({"input": user_input})
         answer = rag_response["answer"]
 
-        # Show response in Nepali
+        # Show response
         st.chat_message("assistant").write(answer)
