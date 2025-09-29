@@ -23,9 +23,9 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets.get("groq", {}).get("api_
 # -----------------------------
 # Streamlit UI
 # -----------------------------
-st.set_page_config(page_title="Groq PDF RAG (Nepali)", layout="wide")
-st.title("📄 Groq PDF Q&A (नेपाली)")
-st.write("पूर्व-लोड गरिएको PDF embeddings बाट उत्तर दिन्छ।")
+st.set_page_config(page_title="Sewa Chatbot (Nepali)", layout="wide")
+st.title("📄 Sewa Chatbot (नेपाली)")
+st.write("Ask anything related..")
 
 # -----------------------------
 # Load persisted vectorstore
