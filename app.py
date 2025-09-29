@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-from dotenv import load_dotenv
 
 # LangChain & Groq
 from langchain_groq import ChatGroq
@@ -12,17 +11,16 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
-# Load environment variables
-load_dotenv()
-os.environ["HF_TOKEN"] = os.getenv("HF_TOKEN")
-
-# --- Hardcoded Groq API key ---
-GROQ_API_KEY = "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"
-
 # ---- Streamlit Layout ----
 st.set_page_config(page_title="Groq PDF RAG (Nepali)", layout="wide")
 st.title("📄 Groq PDF Q&A (नेपाली)")
 st.write("पूर्व-लोड गरिएको PDF embeddings बाट उत्तर दिन्छ।")
+
+# ---- Load API keys from Streamlit secrets ----
+# ⚠️ Make sure to set these in Streamlit Cloud: Secrets -> GROQ API & HF token
+GROQ_API_KEY = st.secrets["groq"]["api_key"]
+HF_TOKEN = st.secrets["hf"]["token"]
+os.environ["HF_TOKEN"] = HF_TOKEN
 
 # ---- Load persisted vectorstore from repo ----
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
